@@ -60,7 +60,9 @@ function determineConfidenceGrade(claims: Claim[]): ConfidenceGrade {
   if (hasTier1 && hasCorroboration) return 'A'
   if (hasTier1) return 'B'
   if (hasCorroboration) return 'C'
-  return 'D'
+  // Default to C (developing) rather than D — D is reserved for social-only content
+  // with no real claims. If we extracted claims, the source is at least a news article.
+  return claims.length > 0 ? 'C' : 'D'
 }
 
 export async function runDraftArticle(): Promise<void> {
@@ -121,7 +123,7 @@ export async function runDraftArticle(): Promise<void> {
 
       let draft: ArticleDraft | null = null
       try {
-        const raw = await generate('drafting', ARTICLE_DRAFT_PROMPT, userPrompt)
+        const raw = await generate('drafting', ARTICLE_DRAFT_PROMPT, userPrompt, 6000)
         draft = parseArticleDraft(raw)
 
         if (!draft) {
@@ -129,6 +131,7 @@ export async function runDraftArticle(): Promise<void> {
             'drafting',
             ARTICLE_DRAFT_PROMPT + '\n\nCRITICAL: respond ONLY with valid JSON, no markdown code fences.',
             userPrompt,
+            6000,
           )
           draft = parseArticleDraft(raw2)
         }

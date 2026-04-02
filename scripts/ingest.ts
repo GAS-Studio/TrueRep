@@ -4,6 +4,24 @@ import type { DeskId } from '../lib/types'
 
 const parser = new Parser()
 
+async function resolveUrl(url: string): Promise<string> {
+  if (!url.includes('news.google.com')) return url
+  try {
+    const res = await fetch(url, {
+      method: 'GET',
+      redirect: 'follow',
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; TrueRep/1.0)' },
+      signal: AbortSignal.timeout(8000),
+    })
+    const finalUrl = res.url
+    // If we ended up back at Google or got a Google consent page, fall back
+    if (finalUrl.includes('google.com') || finalUrl.includes('consent.')) return url
+    return finalUrl
+  } catch {
+    return url
+  }
+}
+
 interface DeskConfig {
   id: DeskId
   googleQuery: string
@@ -33,12 +51,22 @@ async function fetchGoogleNewsRSS(query: string): Promise<{ title: string; url: 
 
   try {
     const feed = await parser.parseURL(feedUrl)
-    return (feed.items ?? []).slice(0, 10).map((item) => ({
-      title: item.title ?? '',
-      url: item.link ?? '',
-      snippet: item.contentSnippet ?? item.content ?? '',
-      published_date: item.pubDate ? new Date(item.pubDate).toISOString() : null,
-    }))
+    const items = (feed.items ?? []).slice(0, 10)
+    const resolved = await Promise.all(
+      items.map(async (item) => {
+        const rawUrl = item.link ?? ''
+        const resolvedUrl = await resolveUrl(rawUrl)
+        return {
+          title: item.title ?? '',
+          url: resolvedUrl,
+          snippet: item.contentSnippet ?? item.content ?? '',
+          published_date: item.pubDate ? new Date(item.pubDate).toISOString() : null,
+        }
+      })
+    )
+    const resolved_count = resolved.filter(r => !r.url.includes('news.google.com')).length
+    console.log(`[ingest] Resolved ${resolved_count}/${items.length} Google News URLs to original sources`)
+    return resolved
   } catch (err) {
     console.warn(`[ingest] Google News RSS failed for query "${query}":`, err)
     return []
