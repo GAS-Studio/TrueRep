@@ -2,7 +2,8 @@ import Parser from 'rss-parser'
 import { supabaseAdmin } from '../lib/supabase'
 import { generate, delay } from '../lib/openrouter'
 import { CORROBORATION_PROMPT } from '../lib/prompts'
-import type { Claim, CorroborationResult } from '../lib/types'
+import { CURATED_SOURCES } from '../lib/sources'
+import type { Claim, CorroborationResult, DeskId } from '../lib/types'
 
 const parser = new Parser()
 
@@ -50,12 +51,91 @@ async function searchPubMedRSS(claimText: string): Promise<{ title: string; url:
   }
 }
 
+async function checkCuratedSources(
+  claim: Claim,
+  deskId: DeskId,
+  hasTier1: boolean,
+  hasCorroboration: boolean,
+): Promise<{ hasTier1: boolean; hasCorroboration: boolean }> {
+  const curated = (CURATED_SOURCES[deskId] ?? []).filter((s) => s.tier <= 2)
+  if (curated.length === 0) return { hasTier1, hasCorroboration }
+
+  console.log(`[corroborate] Checking ${curated.length} curated sources for claim ${claim.id.slice(0, 8)}...`)
+
+  for (const source of curated) {
+    // Skip if we already have what we need
+    if (hasTier1 && hasCorroboration) break
+
+    const userPrompt = `CLAIM: ${claim.claim_text}
+
+SOURCE TITLE: ${source.title}
+SOURCE PUBLISHER: ${source.publisher}
+SOURCE URL: ${source.url}
+SOURCE TYPE: ${source.source_type}
+
+This is a curated authoritative source. Based on the source title and publisher, assess whether this source would address or be relevant to this claim. If the source is clearly in the wrong domain (e.g. a race organizer for a supplement claim), return "provides_context" with low confidence.`
+
+    let corroboration: CorroborationResult | null = null
+    try {
+      const raw = await generate('drafting', CORROBORATION_PROMPT, userPrompt, 256)
+      corroboration = parseCorroborationResponse(raw)
+    } catch (err) {
+      console.warn(`[corroborate] LLM error on curated source:`, err)
+    }
+
+    if (!corroboration || corroboration.relationship === 'contradicts') {
+      await delay(8000)
+      continue
+    }
+
+    // Upsert the curated source
+    const { data: sourceData } = await supabaseAdmin
+      .from('sources')
+      .upsert(
+        {
+          url: source.url,
+          title: source.title,
+          publisher: source.publisher,
+          tier: source.tier,
+          tier_justification: `Curated ${source.source_type} source for ${deskId} desk`,
+          source_type: source.source_type,
+        },
+        { onConflict: 'url' },
+      )
+      .select('id')
+      .single()
+
+    if (sourceData?.id) {
+      await supabaseAdmin
+        .from('claim_sources')
+        .upsert(
+          {
+            claim_id: claim.id,
+            source_id: sourceData.id,
+            relationship: corroboration.relationship,
+            relevance_note: corroboration.note,
+          },
+          { onConflict: 'claim_id,source_id', ignoreDuplicates: true },
+        )
+
+      if (source.tier === 1) hasTier1 = true
+      if (corroboration.relationship === 'supports') hasCorroboration = true
+
+      console.log(`[corroborate] Linked curated source "${source.publisher}" → ${corroboration.relationship} (tier ${source.tier})`)
+    }
+
+    await delay(8000)
+  }
+
+  return { hasTier1, hasCorroboration }
+}
+
 export async function runCorroborate(): Promise<void> {
   console.log('[corroborate] Finding claims needing corroboration...')
 
   const { data: claims, error } = await supabaseAdmin
     .from('claims')
-    .select('*')
+    .select('*, article:articles(desk_id)')
     .or('has_tier1_source.eq.false,has_corroboration.eq.false')
     .limit(50)
 
@@ -138,6 +218,14 @@ export async function runCorroborate(): Promise<void> {
       }
 
       await delay(8000)
+    }
+
+    // If still missing tier1 or corroboration, check curated sources for the desk
+    const deskId = ((claim as Claim & { article?: { desk_id: DeskId } }).article?.desk_id) ?? null
+    if (deskId && (!hasTier1 || !hasCorroboration)) {
+      const updated = await checkCuratedSources(claim, deskId, hasTier1, hasCorroboration)
+      hasTier1 = updated.hasTier1
+      hasCorroboration = updated.hasCorroboration
     }
 
     // Update claim flags
