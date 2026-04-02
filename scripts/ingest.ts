@@ -4,22 +4,21 @@ import type { DeskId } from '../lib/types'
 
 const parser = new Parser()
 
-async function resolveUrl(url: string): Promise<string> {
-  if (!url.includes('news.google.com')) return url
-  try {
-    const res = await fetch(url, {
-      method: 'GET',
-      redirect: 'follow',
-      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; TrueRep/1.0)' },
-      signal: AbortSignal.timeout(8000),
-    })
-    const finalUrl = res.url
-    // If we ended up back at Google or got a Google consent page, fall back
-    if (finalUrl.includes('google.com') || finalUrl.includes('consent.')) return url
-    return finalUrl
-  } catch {
-    return url
-  }
+function extractSourceUrl(item: Record<string, unknown>, fallbackUrl: string): string {
+  // Google News RSS encodes the source URL in item.source?.url (the publisher's homepage)
+  // and sometimes in item.link as a redirect. We prefer the original link if it's not Google.
+  if (!fallbackUrl.includes('news.google.com')) return fallbackUrl
+
+  // Try item['source'] which rss-parser exposes as { url, title }
+  const source = item['source'] as { url?: string } | undefined
+  if (source?.url && !source.url.includes('google.com')) return source.url
+
+  // Try to find any non-Google URL in the raw content/enclosure fields
+  const content = String(item['content'] ?? item['summary'] ?? '')
+  const match = content.match(/href="(https?:\/\/(?!(?:www\.)?google\.)[^"]+)"/)
+  if (match?.[1]) return match[1]
+
+  return fallbackUrl
 }
 
 interface DeskConfig {
@@ -52,18 +51,16 @@ async function fetchGoogleNewsRSS(query: string): Promise<{ title: string; url: 
   try {
     const feed = await parser.parseURL(feedUrl)
     const items = (feed.items ?? []).slice(0, 10)
-    const resolved = await Promise.all(
-      items.map(async (item) => {
-        const rawUrl = item.link ?? ''
-        const resolvedUrl = await resolveUrl(rawUrl)
-        return {
-          title: item.title ?? '',
-          url: resolvedUrl,
-          snippet: item.contentSnippet ?? item.content ?? '',
-          published_date: item.pubDate ? new Date(item.pubDate).toISOString() : null,
-        }
-      })
-    )
+    const resolved = items.map((item) => {
+      const rawUrl = item.link ?? ''
+      const resolvedUrl = extractSourceUrl(item as unknown as Record<string, unknown>, rawUrl)
+      return {
+        title: item.title ?? '',
+        url: resolvedUrl,
+        snippet: item.contentSnippet ?? item.content ?? '',
+        published_date: item.pubDate ? new Date(item.pubDate).toISOString() : null,
+      }
+    })
     const resolved_count = resolved.filter(r => !r.url.includes('news.google.com')).length
     console.log(`[ingest] Resolved ${resolved_count}/${items.length} Google News URLs to original sources`)
     return resolved

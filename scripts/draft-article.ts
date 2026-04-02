@@ -1,6 +1,6 @@
 import { supabaseAdmin } from '../lib/supabase'
 import { generate, delay } from '../lib/openrouter'
-import { ARTICLE_DRAFT_PROMPT } from '../lib/prompts'
+import { ARTICLE_BODY_PROMPT, ARTICLE_DRAFT_PROMPT } from '../lib/prompts'
 import type { DeskId, ArticleDraft, ConfidenceGrade, ArticleType, Claim } from '../lib/types'
 
 const DESK_IDS: DeskId[] = ['supplements', 'races', 'strength']
@@ -123,17 +123,38 @@ export async function runDraftArticle(): Promise<void> {
 
       let draft: ArticleDraft | null = null
       try {
-        const raw = await generate('drafting', ARTICLE_DRAFT_PROMPT, userPrompt, 6000)
-        draft = parseArticleDraft(raw)
+        // Step 1: generate the article body as plain markdown (avoids JSON escaping issues)
+        const bodyMarkdown = await generate('drafting', ARTICLE_BODY_PROMPT, userPrompt, 6000)
 
-        if (!draft) {
-          const raw2 = await generate(
-            'drafting',
-            ARTICLE_DRAFT_PROMPT + '\n\nCRITICAL: respond ONLY with valid JSON, no markdown code fences.',
-            userPrompt,
-            6000,
-          )
-          draft = parseArticleDraft(raw2)
+        await delay(8000)
+
+        // Step 2: generate metadata JSON separately, passing the body as context
+        const metaPrompt = `CLAIMS AND SOURCES:\n${userPrompt}\n\nARTICLE BODY (already written):\n${bodyMarkdown.slice(0, 1000)}`
+        const rawMeta = await generate('drafting', ARTICLE_DRAFT_PROMPT, metaPrompt, 1024)
+
+        const cleaned = rawMeta.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+        try {
+          const parsed = JSON.parse(cleaned)
+          if (parsed.headline && parsed.nut_graf) {
+            draft = { ...parsed, body_markdown: bodyMarkdown } as ArticleDraft
+          }
+        } catch {
+          // If metadata JSON fails, build minimal draft from body
+          const firstLine = bodyMarkdown.split('\n').find(l => l.trim() && !l.startsWith('#')) ?? ''
+          draft = {
+            headline: article.headline,
+            subheadline: '',
+            nut_graf: firstLine.slice(0, 300),
+            body_markdown: bodyMarkdown,
+            practical_takeaway: '',
+            what_we_dont_know: '',
+            source_notes: '',
+            why_this_story: '',
+            article_type: determineArticleType(claims as Claim[], article.headline),
+            confidence_grade: grade,
+            confidence_justification: '',
+            meta_description: firstLine.slice(0, 160),
+          } as ArticleDraft
         }
       } catch (err) {
         console.warn(`[draft-article] LLM error for article ${article.id.slice(0, 8)}:`, err)

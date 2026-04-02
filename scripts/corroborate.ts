@@ -1,11 +1,8 @@
-import Parser from 'rss-parser'
 import { supabaseAdmin } from '../lib/supabase'
 import { generate, delay } from '../lib/openrouter'
 import { CORROBORATION_PROMPT } from '../lib/prompts'
 import { CURATED_SOURCES } from '../lib/sources'
 import type { Claim, CorroborationResult, DeskId } from '../lib/types'
-
-const parser = new Parser()
 
 function parseCorroborationResponse(raw: string): CorroborationResult | null {
   try {
@@ -33,20 +30,38 @@ function extractKeyTerms(claimText: string): string {
   return terms
 }
 
-async function searchPubMedRSS(claimText: string): Promise<{ title: string; url: string; snippet: string }[]> {
+interface PubMedSearchResult { esearchresult?: { idlist?: string[] } }
+interface PubMedSummaryResult {
+  result?: Record<string, { uid?: string; title?: string; source?: string; pubdate?: string; sortfirstauthor?: string }>
+}
+
+async function searchPubMed(claimText: string): Promise<{ title: string; url: string; snippet: string }[]> {
   const terms = extractKeyTerms(claimText)
   if (!terms) return []
 
-  const feedUrl = `https://pubmed.ncbi.nlm.nih.gov/rss/search/?term=${terms}&limit=5`
   try {
-    const feed = await parser.parseURL(feedUrl)
-    return (feed.items ?? []).slice(0, 5).map((item) => ({
-      title: item.title ?? '',
-      url: item.link ?? '',
-      snippet: item.contentSnippet ?? '',
-    }))
+    const searchUrl = `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&term=${terms}&retmax=5&sort=relevance&retmode=json`
+    const searchRes = await fetch(searchUrl)
+    const searchData: PubMedSearchResult = await searchRes.json()
+    const pmids = searchData?.esearchresult?.idlist ?? []
+    if (pmids.length === 0) return []
+
+    const summaryUrl = `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pubmed&id=${pmids.join(',')}&retmode=json`
+    const summaryRes = await fetch(summaryUrl)
+    const summaryData: PubMedSummaryResult = await summaryRes.json()
+
+    return pmids
+      .map((pmid) => {
+        const entry = summaryData?.result?.[pmid]
+        if (!entry?.title) return null
+        return {
+          title: entry.title,
+          url: `https://pubmed.ncbi.nlm.nih.gov/${pmid}/`,
+          snippet: `${entry.source ?? ''} — ${entry.sortfirstauthor ?? ''} (${entry.pubdate ?? ''})`.trim(),
+        }
+      })
+      .filter((x): x is { title: string; url: string; snippet: string } => x !== null)
   } catch {
-    // PubMed RSS can be unreliable; fall back silently
     return []
   }
 }
@@ -148,7 +163,7 @@ export async function runCorroborate(): Promise<void> {
   console.log(`[corroborate] Corroborating ${claims.length} claims...`)
 
   for (const claim of claims as Claim[]) {
-    const results = await searchPubMedRSS(claim.claim_text)
+    const results = await searchPubMed(claim.claim_text)
 
     if (results.length === 0) {
       console.log(`[corroborate] No PubMed results for claim ${claim.id.slice(0, 8)}`)
