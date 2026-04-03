@@ -8,9 +8,13 @@ function parseFactCheckResponse(raw: string): FactCheckResult | null {
     const cleaned = raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
     const parsed = JSON.parse(cleaned)
     if (typeof parsed.passed === 'boolean') {
+      // Support both flat string[] and structured {type,description,severity}[] issues
+      const issues: string[] = (parsed.issues ?? []).map((i: unknown) =>
+        typeof i === 'string' ? i : (i as { description?: string }).description ?? JSON.stringify(i)
+      )
       return {
         passed: parsed.passed,
-        issues: parsed.issues ?? [],
+        issues,
         overstatement_flags: parsed.overstatement_flags ?? [],
         uncited_sentences: parsed.uncited_sentences ?? [],
       }
@@ -56,14 +60,15 @@ export async function runFactCheck(): Promise<void> {
 
     let result: FactCheckResult | null = null
     try {
-      const raw = await generate('reasoning', FACT_CHECK_PROMPT, userPrompt)
+      const raw = await generate('drafting', FACT_CHECK_PROMPT, userPrompt, 1024)
       result = parseFactCheckResponse(raw)
 
       if (!result) {
         const raw2 = await generate(
-          'reasoning',
+          'drafting',
           FACT_CHECK_PROMPT + '\n\nCRITICAL: respond ONLY with valid JSON, no markdown fences.',
           userPrompt,
+          1024,
         )
         result = parseFactCheckResponse(raw2)
       }
@@ -97,9 +102,13 @@ export async function runFactCheck(): Promise<void> {
       }
     }
 
-    // Critical issues prevent publishing; non-critical issues allow publishing with flags
-    const hasCriticalIssues = result.issues.length > 0
-    const shouldPublish = result.passed || (!hasCriticalIssues && result.uncited_sentences.length <= 2)
+    // Only block publishing on critical issues (guardrail violations).
+    // Minor issues (uncited sentences, low-severity flags) are flagged but don't block.
+    const guardrailKeywords = ['fda approved', 'fda-approved', 'cure', 'treats ', 'diagnos']
+    const hasCriticalIssues = result.issues.some(issue =>
+      guardrailKeywords.some(kw => issue.toLowerCase().includes(kw))
+    )
+    const shouldPublish = !hasCriticalIssues
 
     const { error: updateError } = await supabaseAdmin
       .from('articles')

@@ -78,7 +78,9 @@ TrueRep's voice: intelligent, grounded, no hype, no clickbait, trusted by seriou
 
 Write ONLY the article body in markdown using the provided claims and sources. Do NOT return JSON. Just the markdown text.
 
-MINIMUM 900 words. Structure with ALL of these sections:
+MINIMUM 900 words of journalistic prose. The word count applies ONLY to the article body sections below — do NOT count any evidence summaries, claims lists, or source appendices that the frontend renders separately.
+
+Structure with ALL of these sections:
 
 ## Background
 Context: why this topic matters, what was previously known, relevant history.
