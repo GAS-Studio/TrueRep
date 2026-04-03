@@ -163,100 +163,103 @@ export async function runCorroborate(): Promise<void> {
   console.log(`[corroborate] Corroborating ${claims.length} claims...`)
 
   for (const claim of claims as Claim[]) {
-    const results = await searchPubMed(claim.claim_text)
+    try {
+      const results = await searchPubMed(claim.claim_text)
 
-    if (results.length === 0) {
-      console.log(`[corroborate] No PubMed results for claim ${claim.id.slice(0, 8)}`)
-      await delay(8000)
-      continue
-    }
-
-    let hasTier1 = claim.has_tier1_source
-    let hasCorroboration = claim.has_corroboration
-    let hasConflict = claim.has_conflict
-    let conflictDescription = claim.conflict_description
-
-    for (const result of results.slice(0, 2)) {
-      const userPrompt = `CLAIM: ${claim.claim_text}\n\nSOURCE TITLE: ${result.title}\nSOURCE URL: ${result.url}\nSOURCE SNIPPET: ${result.snippet}`
-
-      let corroboration: CorroborationResult | null = null
-      try {
-        const raw = await generate('reasoning', CORROBORATION_PROMPT, userPrompt, 512)
-        corroboration = parseCorroborationResponse(raw)
-      } catch (err) {
-        console.warn(`[corroborate] LLM error:`, err)
-      }
-
-      if (!corroboration) {
+      if (results.length === 0) {
+        console.log(`[corroborate] No PubMed results for claim ${claim.id.slice(0, 8)}`)
         await delay(8000)
         continue
       }
 
-      // Upsert source
-      const { data: sourceData } = await supabaseAdmin
-        .from('sources')
-        .upsert(
-          {
-            url: result.url,
-            title: result.title,
-            tier: corroboration.tier,
-            tier_justification: corroboration.note,
-            source_type: 'pubmed',
-            snippet: result.snippet.slice(0, 1000),
-          },
-          { onConflict: 'url' },
-        )
-        .select('id')
-        .single()
+      let hasTier1 = claim.has_tier1_source
+      let hasCorroboration = claim.has_corroboration
+      let hasConflict = claim.has_conflict
+      let conflictDescription = claim.conflict_description
 
-      if (sourceData?.id) {
-        // Create claim_source record (ignore duplicate)
-        await supabaseAdmin
-          .from('claim_sources')
+      for (const result of results.slice(0, 2)) {
+        const userPrompt = `CLAIM: ${claim.claim_text}\n\nSOURCE TITLE: ${result.title}\nSOURCE URL: ${result.url}\nSOURCE SNIPPET: ${result.snippet}`
+
+        let corroboration: CorroborationResult | null = null
+        try {
+          const raw = await generate('reasoning', CORROBORATION_PROMPT, userPrompt, 512)
+          corroboration = parseCorroborationResponse(raw)
+        } catch (err) {
+          console.warn(`[corroborate] LLM error:`, err)
+        }
+
+        if (!corroboration) {
+          await delay(8000)
+          continue
+        }
+
+        // Upsert source
+        const { data: sourceData } = await supabaseAdmin
+          .from('sources')
           .upsert(
             {
-              claim_id: claim.id,
-              source_id: sourceData.id,
-              relationship: corroboration.relationship,
-              relevance_note: corroboration.note,
+              url: result.url,
+              title: result.title,
+              tier: corroboration.tier,
+              tier_justification: corroboration.note,
+              source_type: 'pubmed',
+              snippet: result.snippet.slice(0, 1000),
             },
-            { onConflict: 'claim_id,source_id', ignoreDuplicates: true },
+            { onConflict: 'url' },
           )
+          .select('id')
+          .single()
+
+        if (sourceData?.id) {
+          await supabaseAdmin
+            .from('claim_sources')
+            .upsert(
+              {
+                claim_id: claim.id,
+                source_id: sourceData.id,
+                relationship: corroboration.relationship,
+                relevance_note: corroboration.note,
+              },
+              { onConflict: 'claim_id,source_id', ignoreDuplicates: true },
+            )
+        }
+
+        // Update flags
+        if (corroboration.tier === 1) hasTier1 = true
+        if (corroboration.relationship === 'supports') hasCorroboration = true
+        if (corroboration.relationship === 'contradicts') {
+          hasConflict = true
+          conflictDescription = corroboration.note
+        }
+
+        await delay(8000)
       }
 
-      // Update flags
-      if (corroboration.tier === 1) hasTier1 = true
-      if (corroboration.relationship === 'supports') hasCorroboration = true
-      if (corroboration.relationship === 'contradicts') {
-        hasConflict = true
-        conflictDescription = corroboration.note
+      // If still missing tier1 or corroboration, check curated sources for the desk
+      const deskId = ((claim as Claim & { article?: { desk_id: DeskId } }).article?.desk_id) ?? null
+      if (deskId && (!hasTier1 || !hasCorroboration)) {
+        const updated = await checkCuratedSources(claim, deskId, hasTier1, hasCorroboration)
+        hasTier1 = updated.hasTier1
+        hasCorroboration = updated.hasCorroboration
       }
 
-      await delay(8000)
+      // Update claim flags
+      await supabaseAdmin
+        .from('claims')
+        .update({
+          has_tier1_source: hasTier1,
+          has_corroboration: hasCorroboration,
+          has_conflict: hasConflict,
+          conflict_description: conflictDescription,
+        })
+        .eq('id', claim.id)
+
+      console.log(
+        `[corroborate] Claim ${claim.id.slice(0, 8)}: tier1=${hasTier1}, corroborated=${hasCorroboration}, conflict=${hasConflict}`,
+      )
+    } catch (err) {
+      console.warn(`[corroborate] Skipping claim ${claim.id.slice(0, 8)} after error:`, err)
     }
-
-    // If still missing tier1 or corroboration, check curated sources for the desk
-    const deskId = ((claim as Claim & { article?: { desk_id: DeskId } }).article?.desk_id) ?? null
-    if (deskId && (!hasTier1 || !hasCorroboration)) {
-      const updated = await checkCuratedSources(claim, deskId, hasTier1, hasCorroboration)
-      hasTier1 = updated.hasTier1
-      hasCorroboration = updated.hasCorroboration
-    }
-
-    // Update claim flags
-    await supabaseAdmin
-      .from('claims')
-      .update({
-        has_tier1_source: hasTier1,
-        has_corroboration: hasCorroboration,
-        has_conflict: hasConflict,
-        conflict_description: conflictDescription,
-      })
-      .eq('id', claim.id)
-
-    console.log(
-      `[corroborate] Claim ${claim.id.slice(0, 8)}: tier1=${hasTier1}, corroborated=${hasCorroboration}, conflict=${hasConflict}`,
-    )
   }
 
   console.log('[corroborate] Done.')
