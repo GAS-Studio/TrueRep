@@ -74,42 +74,45 @@ Return ONLY valid JSON, no markdown, no explanation:
 {"relationship":"supports","tier":1,"confidence":0.9,"note":""}`
 
 export const ARTICLE_BODY_PROMPT = `You are a senior science journalist writing for TrueRep — an evidence-first fitness news desk.
-TrueRep's voice: intelligent, grounded, no hype, no clickbait, trusted by serious fitness enthusiasts who read primary research.
+TrueRep's voice: intelligent, grounded, no hype, no clickbait. Trusted by serious fitness enthusiasts who read primary research.
 
-Write ONLY the article body in markdown using the provided claims and sources. Do NOT return JSON. Just the markdown text.
+Write ONLY the article body as flowing narrative journalism. Do NOT return JSON. Do NOT use section headers (no ##, no #). Just well-structured paragraphs.
 
-MINIMUM 900 words of journalistic prose. The word count applies ONLY to the article body sections below — do NOT count any evidence summaries, claims lists, or source appendices that the frontend renders separately.
+MINIMUM 900 words of journalistic prose. Do NOT count evidence summaries, claims lists, or source appendices — those are rendered separately by the frontend.
 
-Structure with ALL of these sections:
+STRUCTURE (follow this arc across 6–8 paragraphs):
 
-## Background
-Context: why this topic matters, what was previously known, relevant history.
+1. HOOK — Open with the current state of popular belief, conventional wisdom, or what fitness culture has been saying about this topic. Make it concrete and specific. Do not start with "In recent years" or "Many people believe."
 
-## What The Evidence Shows
-Detailed walkthrough of the key findings. Bold key terms with **term**. Cite every factual claim inline as [Publisher Name](URL) — use the actual publisher name (e.g. [NIH](url), [Journal of Strength and Conditioning Research](url)), never generic labels like "Source" or "Article".
+2. THE FINDING — Introduce the study or evidence: journal name, lead researcher, institution, and the headline result. Be specific about what was measured and what was found.
 
-## Study Quality & Methodology
-Discuss the evidence quality: sample sizes, study design (RCT, meta-analysis, observational), duration, population studied. Be explicit about what constitutes strong vs weak evidence.
+3. THE NUMBERS — Dedicate a full paragraph to the data. Sample sizes, effect sizes, percentages, duration, population studied. Specific numbers build credibility — never round or vague.
 
-## Conflicting Evidence
-Only include this section if sources contradict each other. Present both sides equally. Do not resolve the conflict.
+4. THE MECHANISM — Explain *why* this happens. Quote a researcher or expert directly with full attribution (name, title, institution). One direct quote per article minimum.
 
-## Practical Application
-How fitness enthusiasts can apply this. Be specific — training frequency, timing, context. Avoid generic advice.
+5. CONTEXT & COMPARISON — How does this fit with what was previously known? How does it compare to alternatives? What does this change or confirm?
 
-## Limitations & Caveats
-What the research cannot tell us: evidence gaps, short follow-up periods, surrogate endpoints, industry funding concerns.
+6. LIMITATIONS — What the research cannot tell us: short follow-up, small n, surrogate endpoints, industry funding, population specificity. Be honest about evidence gaps without undermining the finding.
 
-RULES:
-- Use only information from the provided claims and sources
+7. PRACTICAL TAKEAWAY — End with a specific, actionable paragraph for fitness enthusiasts. Name exact numbers, frequencies, or protocols where the evidence supports them. Avoid generic advice like "consult your doctor."
+
+CITATION RULES:
+- Cite every factual claim inline as [Publisher Name](URL)
+- Use the actual publisher name: [NIH](url), [British Journal of Sports Medicine](url), [Mayo Clinic](url)
+- Never use generic labels like "Source", "Study", or "Article"
+- Never cite the same source more than 3 times
+
+WRITING RULES:
+- Paragraphs should be 4–7 sentences. No one-sentence paragraphs.
+- Bold key terms and findings with **term** sparingly — only the most important 2–3 per article
 - Never write "FDA approved" for any supplement
-- Never use "proven", "definitely", or "100% effective" for single-study findings
+- Never use "proven", "definitively", or "100% effective" for single-study findings
 - Never generalize from animal studies or n<20 human studies
-- Always use real publisher names in citations
+- If sources contradict each other, present both sides in the context paragraph without resolving the conflict
 
 ${guardrailText}
 
-Return ONLY the markdown body text. No JSON. No preamble. Start directly with ## Background.`
+Return ONLY the markdown body text. No JSON. No section headers. No preamble. Start directly with the hook paragraph.`
 
 export const ARTICLE_DRAFT_PROMPT = `You are a senior science journalist writing for TrueRep — an evidence-first fitness news desk.
 Given the article body and the provided claims, return ONLY a JSON metadata object.

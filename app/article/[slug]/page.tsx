@@ -9,9 +9,9 @@ import ArticleTypeBadge from '@/components/ArticleTypeBadge'
 import VerificationTimestamp from '@/components/VerificationTimestamp'
 import EvidenceCard from '@/components/EvidenceCard'
 import WhyThisStory from '@/components/WhyThisStory'
-import ClaimBlock from '@/components/ClaimBlock'
 import SourcePill from '@/components/SourcePill'
 import MedicalDisclaimer from '@/components/MedicalDisclaimer'
+import ClaimsSidebar from '@/components/ClaimsSidebar'
 
 async function getArticle(slug: string): Promise<ArticleWithClaims | null> {
   try {
@@ -61,7 +61,9 @@ export default async function ArticlePage({
   const sortedClaims = [...(article.claims || [])].sort((a, b) => a.claim_order - b.claim_order)
 
   return (
-    <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
+    <div className="flex gap-10 items-start">
+    <div className="flex-1 min-w-0">
       {/* Breadcrumb */}
       <nav className="flex items-center gap-1.5 text-sm text-text-dim mb-6">
         <Link href="/" className="hover:text-text transition-colors">Home</Link>
@@ -126,18 +128,6 @@ export default async function ArticlePage({
         className="article-body mb-10"
         dangerouslySetInnerHTML={{ __html: article.body_html }}
       />
-
-      {/* Claims */}
-      {sortedClaims.length > 0 && (
-        <div className="mb-10">
-          <h2 className="text-xl font-bold text-text mb-4">Verified Claims</h2>
-          <div className="space-y-3">
-            {sortedClaims.map((claim, i) => (
-              <ClaimBlock key={claim.id} claim={claim} index={i} />
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Practical takeaway */}
       {article.practical_takeaway && (
@@ -230,6 +220,13 @@ export default async function ArticlePage({
 
       {/* Medical disclaimer */}
       <MedicalDisclaimer />
+    </div>
+
+    {/* Claims sidebar — desktop only */}
+    <div className="hidden lg:block">
+      <ClaimsSidebar claims={sortedClaims as Parameters<typeof ClaimsSidebar>[0]['claims']} />
+    </div>
+    </div>
     </div>
   )
 }
