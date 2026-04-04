@@ -21,19 +21,19 @@ export default function ClaimBlock({
   const sources = claim.claim_sources || []
 
   return (
-    <div className="rounded-lg border border-border bg-card/50 overflow-hidden">
+    <div className="rounded-lg border border-border bg-card shadow-sm overflow-hidden">
       <button
         onClick={() => setOpen(!open)}
-        className="w-full flex items-start gap-3 p-4 text-left hover:bg-card transition-colors"
+        className="w-full flex items-start gap-3 p-4 text-left hover:bg-card-hover transition-colors"
       >
-        <span className="text-xs font-bold text-text-dim bg-border/50 rounded-full w-6 h-6 flex items-center justify-center shrink-0 mt-0.5">
+        <span className="text-xs font-bold text-text-dim bg-bg rounded-full w-6 h-6 flex items-center justify-center shrink-0 mt-0.5 border border-border">
           {index + 1}
         </span>
 
         <div className="flex-1 min-w-0">
           <p className="text-sm text-text leading-relaxed">{claim.claim_text}</p>
           {claim.category && (
-            <span className="inline-block mt-1.5 px-2 py-0.5 rounded text-[10px] font-medium uppercase tracking-wider bg-border/50 text-text-dim">
+            <span className="inline-block mt-1.5 px-2 py-0.5 rounded text-[10px] font-medium uppercase tracking-wider bg-bg text-text-dim border border-border">
               {claim.category}
             </span>
           )}

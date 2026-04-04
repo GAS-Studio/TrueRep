@@ -3,93 +3,91 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState } from 'react'
-import { ShieldCheck, Menu, X } from 'lucide-react'
+import { Menu, X } from 'lucide-react'
 import { DESKS } from '@/lib/constants'
 
 const deskList = Object.values(DESKS)
-
-const navLinks = [
-  { href: '/', label: 'Home' },
-  ...deskList.map((d) => ({ href: `/${d.id}`, label: d.name, color: d.color })),
-  { href: '/pipeline', label: 'Pipeline' },
-]
+const deskColors: Record<string, string> = {
+  supplements: '#2D6A4F',
+  races: '#B8860B',
+  strength: '#8B2500',
+}
 
 export default function Navbar() {
   const [open, setOpen] = useState(false)
   const pathname = usePathname()
 
   return (
-    <header className="sticky top-0 z-50 bg-bg/80 backdrop-blur-xl border-b border-border">
+    <header className="bg-card border-b border-border shadow-sm">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
-        <div className="flex items-center justify-between h-16">
-          <Link href="/" className="flex items-center gap-2.5 shrink-0">
-            <ShieldCheck className="w-7 h-7 text-accent" />
-            <span className="text-xl font-bold tracking-tight text-text">
-              True<span className="text-accent">Rep</span>
-            </span>
+        {/* Masthead */}
+        <div className="flex items-center justify-between py-5">
+          <Link href="/" className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
+              <span className="text-white font-bold text-sm font-headline">TR</span>
+            </div>
+            <div>
+              <h1 className="font-headline text-2xl font-bold tracking-tight text-text leading-none">
+                TrueRep
+              </h1>
+              <p className="text-[10px] text-text-dim tracking-[0.15em] uppercase">
+                Evidence-First Fitness News
+              </p>
+            </div>
           </Link>
 
+          {/* Desktop nav */}
           <nav className="hidden md:flex items-center gap-1">
-            {navLinks.map((link) => {
-              const isActive = pathname === link.href || (link.href !== '/' && pathname.startsWith(link.href))
+            {deskList.map((desk) => {
+              const isActive = pathname === `/${desk.id}`
               return (
                 <Link
-                  key={link.href}
-                  href={link.href}
-                  className="px-3 py-2 rounded-lg text-sm font-medium transition-colors"
-                  style={{
-                    color: isActive && 'color' in link ? link.color : undefined,
-                    backgroundColor: isActive ? 'rgba(255,255,255,0.05)' : undefined,
-                  }}
+                  key={desk.id}
+                  href={`/${desk.id}`}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                    isActive
+                      ? 'text-white'
+                      : 'text-text-muted hover:bg-card-hover'
+                  }`}
+                  style={isActive ? { backgroundColor: deskColors[desk.id] } : undefined}
                 >
-                  <span
-                    className={`${isActive ? 'text-inherit' : 'text-text-muted hover:text-text'} transition-colors`}
-                    onMouseEnter={(e) => {
-                      if ('color' in link && link.color) {
-                        (e.target as HTMLElement).style.color = link.color
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!isActive) {
-                        (e.target as HTMLElement).style.color = ''
-                      }
-                    }}
-                  >
-                    {link.label}
-                  </span>
+                  {desk.name}
                 </Link>
               )
             })}
+            <Link
+              href="/pipeline"
+              className="px-4 py-2 rounded-lg text-sm font-medium text-text-dim hover:text-text hover:bg-card-hover transition-all"
+            >
+              Our Process
+            </Link>
           </nav>
 
           <button
             onClick={() => setOpen(!open)}
-            className="md:hidden p-2 rounded-lg text-text-muted hover:text-text hover:bg-card transition-colors"
+            className="md:hidden p-2 rounded-lg hover:bg-card-hover"
             aria-label="Toggle menu"
           >
             {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
         </div>
 
+        {/* Mobile nav */}
         {open && (
           <nav className="md:hidden pb-4 space-y-1 border-t border-border pt-3">
-            {navLinks.map((link) => {
-              const isActive = pathname === link.href
-              return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  onClick={() => setOpen(false)}
-                  className="flex items-center px-3 py-2.5 rounded-lg text-sm font-medium transition-colors"
-                  style={{
-                    color: isActive && 'color' in link ? link.color : undefined,
-                    backgroundColor: isActive ? 'rgba(255,255,255,0.05)' : undefined,
-                  }}
-                >
-                  <span className={isActive ? '' : 'text-text-muted'}>{link.label}</span>
-                </Link>
-              )
-            })}
+            {deskList.map((desk) => (
+              <Link
+                key={desk.id}
+                href={`/${desk.id}`}
+                onClick={() => setOpen(false)}
+                className="block py-2 px-3 rounded-lg text-sm text-text-muted hover:bg-card-hover"
+              >
+                {desk.name}
+              </Link>
+            ))}
+            <Link href="/pipeline" onClick={() => setOpen(false)} className="block py-2 px-3 rounded-lg text-sm text-text-dim">
+              Our Process
+            </Link>
           </nav>
         )}
       </div>

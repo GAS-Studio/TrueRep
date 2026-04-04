@@ -2,9 +2,9 @@ import { AlertTriangle, ExternalLink } from 'lucide-react'
 import type { Source, SourceRelationship } from '@/lib/types'
 
 const tierColors: Record<number, string> = {
-  1: 'border-tier-1/50 text-tier-1',
-  2: 'border-tier-2/50 text-tier-2',
-  3: 'border-tier-3/50 text-tier-3',
+  1: 'border-tier-1/40 text-tier-1 bg-tier-1/5',
+  2: 'border-tier-2/40 text-tier-2 bg-tier-2/5',
+  3: 'border-tier-3/40 text-tier-3 bg-tier-3/5',
 }
 
 const tierLabels: Record<number, string> = {
@@ -29,11 +29,11 @@ export default function SourcePill({
       href={source.url}
       target="_blank"
       rel="noopener noreferrer"
-      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border bg-bg/50 text-xs font-medium hover:bg-card transition-colors ${colors}`}
+      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-medium hover:opacity-80 transition-opacity ${colors}`}
     >
       {relationship === 'contradicts' && <AlertTriangle className="w-3 h-3 text-tier-3" />}
       <span className="font-bold">{label}</span>
-      <span className="text-text-muted">&middot;</span>
+      <span className="text-text-dim">&middot;</span>
       <span className="text-text-muted truncate max-w-[120px]">{publisher}</span>
       <ExternalLink className="w-3 h-3 text-text-dim" />
     </a>

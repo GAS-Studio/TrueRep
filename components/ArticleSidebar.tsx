@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { ChevronDown, ShieldCheck, Sparkles, Target, HelpCircle } from 'lucide-react'
+import { ChevronDown } from 'lucide-react'
 import type { ArticleWithClaims, Source, SourceRelationship } from '@/lib/types'
 import ClaimBlock from './ClaimBlock'
 import SourcePill from './SourcePill'
@@ -9,31 +9,26 @@ import ConfidenceBadge from './ConfidenceBadge'
 
 function Section({
   title,
-  icon,
   children,
   defaultOpen = true,
 }: {
   title: string
-  icon: React.ReactNode
   children: React.ReactNode
   defaultOpen?: boolean
 }) {
   const [open, setOpen] = useState(defaultOpen)
   return (
-    <div className="rounded-xl border border-border bg-card overflow-hidden">
+    <div className="border-b border-border pb-4 mb-4 last:border-0 last:pb-0 last:mb-0">
       <button
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between gap-2 px-4 py-3 hover:bg-card/80 transition-colors"
+        className="w-full flex items-center justify-between gap-2 mb-2"
       >
-        <div className="flex items-center gap-2">
-          {icon}
-          <span className="text-sm font-bold text-text">{title}</span>
-        </div>
+        <span className="small-caps text-[10px] font-bold text-text-dim tracking-widest">{title}</span>
         <ChevronDown
-          className={`w-4 h-4 text-text-dim transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+          className={`w-3.5 h-3.5 text-text-dim transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
         />
       </button>
-      {open && <div className="px-4 pb-4">{children}</div>}
+      {open && <div>{children}</div>}
     </div>
   )
 }
@@ -59,55 +54,46 @@ export default function ArticleSidebar({ article }: { article: ArticleWithClaims
 
   return (
     <aside className="w-72 xl:w-80 flex-shrink-0">
-      <div className="sticky top-6 space-y-3 max-h-[calc(100vh-3rem)] overflow-y-auto pb-4">
+      <div className="sticky top-8 max-h-[calc(100vh-4rem)] overflow-y-auto pb-4">
+        <div className="rule mb-4" />
 
         {/* Why this story */}
         {article.why_this_story && (
-          <Section
-            title="Why this story?"
-            icon={<Sparkles className="w-4 h-4 text-secondary" />}
-          >
+          <Section title="Why This Story">
             <p className="text-sm text-text-muted leading-relaxed">{article.why_this_story}</p>
             {(article.topic_score ?? 0) > 0 && (
-              <span className="inline-block mt-2 px-2 py-0.5 rounded text-[10px] font-medium bg-secondary/15 text-secondary">
-                Topic score: {article.topic_score}
+              <span className="text-xs text-text-dim mt-2 block">
+                Relevance score: {article.topic_score}/100
               </span>
             )}
           </Section>
         )}
 
-        {/* Evidence summary */}
-        <Section
-          title="Evidence Summary"
-          icon={<ShieldCheck className="w-4 h-4 text-grade-a" />}
-        >
-          <div className="grid grid-cols-3 gap-2 mb-3">
-            {[
-              { label: 'Tier 1', value: tier1.length },
-              { label: 'Tier 2', value: tier2.length },
-              { label: 'Claims', value: claims.length },
-            ].map(({ label, value }) => (
-              <div key={label} className="rounded-lg bg-background border border-border p-2 text-center">
-                <div className="text-lg font-bold text-text">{value}</div>
-                <div className="text-[10px] text-text-dim uppercase tracking-wider">{label}</div>
-              </div>
-            ))}
+        {/* Evidence */}
+        <Section title="Evidence Summary">
+          <div className="flex gap-4 mb-3">
+            <div className="text-center">
+              <div className="font-headline text-2xl font-bold text-text">{tier1.length}</div>
+              <div className="text-[10px] text-text-dim">Tier 1</div>
+            </div>
+            <div className="text-center">
+              <div className="font-headline text-2xl font-bold text-text">{tier2.length}</div>
+              <div className="text-[10px] text-text-dim">Tier 2</div>
+            </div>
+            <div className="text-center">
+              <div className="font-headline text-2xl font-bold text-text">{claims.length}</div>
+              <div className="text-[10px] text-text-dim">Claims</div>
+            </div>
           </div>
-          <div className="flex items-center gap-2 mb-2">
-            <ConfidenceBadge grade={article.confidence_grade} showLabel />
-          </div>
+          <ConfidenceBadge grade={article.confidence_grade} showLabel />
           {article.confidence_justification && (
-            <p className="text-xs text-text-dim leading-relaxed">{article.confidence_justification}</p>
+            <p className="text-xs text-text-dim leading-relaxed mt-2">{article.confidence_justification}</p>
           )}
         </Section>
 
-        {/* Verified claims */}
+        {/* Claims */}
         {claims.length > 0 && (
-          <Section
-            title={`Verified Claims (${claims.length})`}
-            icon={<ShieldCheck className="w-4 h-4 text-grade-a" />}
-            defaultOpen={false}
-          >
+          <Section title={`Verified Claims (${claims.length})`} defaultOpen={false}>
             <div className="space-y-2">
               {claims.map((claim, i) => (
                 <ClaimBlock key={claim.id} claim={claim} index={i} />
@@ -118,10 +104,7 @@ export default function ArticleSidebar({ article }: { article: ArticleWithClaims
 
         {/* Practical takeaway */}
         {article.practical_takeaway && (
-          <Section
-            title="Practical Takeaway"
-            icon={<Target className="w-4 h-4 text-tier-1" />}
-          >
+          <Section title="Practical Takeaway">
             <div className="text-sm text-text-muted leading-relaxed whitespace-pre-line">
               {article.practical_takeaway}
             </div>
@@ -130,25 +113,17 @@ export default function ArticleSidebar({ article }: { article: ArticleWithClaims
 
         {/* What we don't know */}
         {article.what_we_dont_know && (
-          <Section
-            title="What We Don't Know"
-            icon={<HelpCircle className="w-4 h-4 text-text-dim" />}
-            defaultOpen={false}
-          >
+          <Section title="What We Don't Know" defaultOpen={false}>
             <p className="text-sm text-text-muted leading-relaxed">{article.what_we_dont_know}</p>
           </Section>
         )}
 
         {/* Sources */}
         {allSources.length > 0 && (
-          <Section
-            title="Sources Used"
-            icon={<ShieldCheck className="w-4 h-4 text-text-dim" />}
-            defaultOpen={false}
-          >
+          <Section title="Sources Used" defaultOpen={false}>
             {tier1.length > 0 && (
               <div className="mb-3">
-                <p className="text-[10px] font-bold text-tier-1 uppercase tracking-wider mb-2">Tier 1 — Source of Truth</p>
+                <p className="text-[10px] font-bold text-secondary uppercase tracking-wider mb-1">Tier 1</p>
                 <div className="space-y-1.5">
                   {tier1.map(({ source }) => <SourcePill key={source.id} source={source} />)}
                 </div>
@@ -156,7 +131,7 @@ export default function ArticleSidebar({ article }: { article: ArticleWithClaims
             )}
             {tier2.length > 0 && (
               <div className="mb-3">
-                <p className="text-[10px] font-bold text-tier-2 uppercase tracking-wider mb-2">Tier 2 — Strong Corroboration</p>
+                <p className="text-[10px] font-bold text-text-dim uppercase tracking-wider mb-1">Tier 2</p>
                 <div className="space-y-1.5">
                   {tier2.map(({ source }) => <SourcePill key={source.id} source={source} />)}
                 </div>
@@ -164,7 +139,7 @@ export default function ArticleSidebar({ article }: { article: ArticleWithClaims
             )}
             {tier3.length > 0 && (
               <div>
-                <p className="text-[10px] font-bold text-tier-3 uppercase tracking-wider mb-2">Tier 3 — Weak Signals</p>
+                <p className="text-[10px] font-bold text-text-dim uppercase tracking-wider mb-1">Tier 3</p>
                 <div className="space-y-1.5">
                   {tier3.map(({ source }) => <SourcePill key={source.id} source={source} />)}
                 </div>
@@ -175,7 +150,6 @@ export default function ArticleSidebar({ article }: { article: ArticleWithClaims
             )}
           </Section>
         )}
-
       </div>
     </aside>
   )

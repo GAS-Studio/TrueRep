@@ -15,23 +15,19 @@ const filterOptions: { value: ArticleType | 'all'; label: string }[] = [
 
 export default function FilteredArticles({ articles }: { articles: Article[] }) {
   const [filter, setFilter] = useState<ArticleType | 'all'>('all')
-
-  const filtered = filter === 'all'
-    ? articles
-    : articles.filter((a) => a.article_type === filter)
+  const filtered = filter === 'all' ? articles : articles.filter((a) => a.article_type === filter)
 
   return (
     <div>
-      {/* Filter row */}
       <div className="flex gap-2 overflow-x-auto pb-2 mb-6">
         {filterOptions.map((opt) => (
           <button
             key={opt.value}
             onClick={() => setFilter(opt.value)}
-            className={`shrink-0 px-4 py-2 rounded-full text-sm font-medium border transition-colors ${
+            className={`shrink-0 px-4 py-2 rounded-lg text-sm font-medium border transition-all ${
               filter === opt.value
-                ? 'bg-card border-border-light text-text'
-                : 'border-border text-text-dim hover:text-text-muted hover:border-border-light'
+                ? 'bg-card border-border-light text-text shadow-sm'
+                : 'border-transparent text-text-dim hover:text-text-muted'
             }`}
           >
             {opt.label}
@@ -39,17 +35,16 @@ export default function FilteredArticles({ articles }: { articles: Article[] }) 
         ))}
       </div>
 
-      {/* Articles grid */}
       {filtered.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {filtered.map((article) => (
             <ArticleCard key={article.id} article={article} />
           ))}
         </div>
       ) : (
-        <div className="text-center py-16">
-          <p className="text-text-muted text-lg">No articles yet for this desk.</p>
-          <p className="text-text-dim text-sm mt-2">Check back soon - the pipeline runs daily.</p>
+        <div className="text-center py-16 bg-card rounded-xl border border-border">
+          <p className="text-text-muted">No articles yet for this desk.</p>
+          <p className="text-text-dim text-sm mt-1">Check back soon.</p>
         </div>
       )}
     </div>

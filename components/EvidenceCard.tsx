@@ -6,7 +6,6 @@ import SourcePill from './SourcePill'
 export default function EvidenceCard({ article }: { article: ArticleWithClaims }) {
   const claims = article.claims || []
 
-  // Collect unique sources grouped by tier
   const sourceMap = new Map<string, Source & { relationship?: SourceRelationship }>()
   for (const claim of claims) {
     for (const cs of claim.claim_sources || []) {
@@ -31,19 +30,19 @@ export default function EvidenceCard({ article }: { article: ArticleWithClaims }
 
       {/* Stats grid */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
-        <div className="rounded-lg bg-bg/60 border border-border p-3 text-center">
+        <div className="rounded-lg bg-card border border-border p-3 text-center shadow-sm">
           <div className="text-2xl font-bold text-tier-1">{tier1.length}</div>
           <div className="text-[10px] font-medium text-text-dim uppercase tracking-wider">Tier 1 Sources</div>
         </div>
-        <div className="rounded-lg bg-bg/60 border border-border p-3 text-center">
+        <div className="rounded-lg bg-card border border-border p-3 text-center shadow-sm">
           <div className="text-2xl font-bold text-tier-2">{tier2.length}</div>
           <div className="text-[10px] font-medium text-text-dim uppercase tracking-wider">Tier 2 Sources</div>
         </div>
-        <div className="rounded-lg bg-bg/60 border border-border p-3 text-center">
+        <div className="rounded-lg bg-card border border-border p-3 text-center shadow-sm">
           <div className="text-2xl font-bold text-text">{claims.length}</div>
           <div className="text-[10px] font-medium text-text-dim uppercase tracking-wider">Total Claims</div>
         </div>
-        <div className="rounded-lg bg-bg/60 border border-border p-3 text-center">
+        <div className="rounded-lg bg-card border border-border p-3 text-center shadow-sm">
           <div className={`text-2xl font-bold ${conflictCount > 0 ? 'text-grade-d' : 'text-grade-a'}`}>
             {conflictCount}
           </div>

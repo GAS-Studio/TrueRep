@@ -4,11 +4,11 @@ import { Rss, BarChart2, Layers, GitMerge, PenLine, CheckCircle, Globe, ArrowRig
 
 const steps = [
   { num: 1, title: 'Discover', description: 'RSS + PubMed scan for trending topics', Icon: Rss, color: '#2E8B8B' },
-  { num: 2, title: 'Score', description: 'Rate freshness, quality, utility, evidence depth', Icon: BarChart2, color: '#3b82f6' },
-  { num: 3, title: 'Extract', description: 'Pull factual claims from each source', Icon: Layers, color: '#8b5cf6' },
-  { num: 4, title: 'Corroborate', description: 'Find supporting Tier 1 & 2 sources', Icon: GitMerge, color: '#10b981' },
-  { num: 5, title: 'Draft', description: 'Generate structured evidence-based article', Icon: PenLine, color: '#f59e0b' },
-  { num: 6, title: 'Fact-Check', description: 'Second AI pass for accuracy', Icon: CheckCircle, color: '#ef4444' },
+  { num: 2, title: 'Score', description: 'Rate freshness, quality, utility, evidence depth', Icon: BarChart2, color: '#2563eb' },
+  { num: 3, title: 'Extract', description: 'Pull factual claims from each source', Icon: Layers, color: '#7c3aed' },
+  { num: 4, title: 'Corroborate', description: 'Find supporting Tier 1 & 2 sources', Icon: GitMerge, color: '#059669' },
+  { num: 5, title: 'Draft', description: 'Generate structured evidence-based article', Icon: PenLine, color: '#d97706' },
+  { num: 6, title: 'Fact-Check', description: 'Second AI pass for accuracy', Icon: CheckCircle, color: '#dc2626' },
   { num: 7, title: 'Publish', description: 'Only Grade A & B make it through', Icon: Globe, color: '#4CAF7A' },
 ]
 
@@ -22,10 +22,10 @@ export default function PipelineViz() {
               className={`animate-fade-in-up delay-${step.num} flex flex-col items-center w-32 sm:w-36`}
             >
               <div
-                className="w-14 h-14 rounded-2xl flex items-center justify-center mb-3 border-2"
+                className="w-14 h-14 rounded-2xl flex items-center justify-center mb-3 border-2 shadow-sm"
                 style={{
                   borderColor: step.color,
-                  backgroundColor: `${step.color}15`,
+                  backgroundColor: `${step.color}10`,
                 }}
               >
                 <step.Icon className="w-6 h-6" style={{ color: step.color }} />
