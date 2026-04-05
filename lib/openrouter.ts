@@ -12,6 +12,12 @@ export const MODELS = {
   scoring: 'llama-3.3-70b',
 } as const
 
+const GENERATE_TIMEOUT_MS = 45_000
+
+function withTimeout(ms: number): AbortSignal {
+  return AbortSignal.timeout(ms)
+}
+
 export async function generate(
   model: keyof typeof MODELS,
   system: string,
@@ -26,6 +32,7 @@ export async function generate(
       system,
       prompt: user,
       maxOutputTokens: maxTokens,
+      abortSignal: withTimeout(GENERATE_TIMEOUT_MS),
     })
     return text
   } catch (err) {
@@ -37,6 +44,7 @@ export async function generate(
         system: system + '\n\nIMPORTANT: Your response MUST be valid JSON only. No markdown fences, no explanation.',
         prompt: user,
         maxOutputTokens: maxTokens,
+        abortSignal: withTimeout(GENERATE_TIMEOUT_MS),
       })
       return text
     } catch (retryErr) {
