@@ -182,7 +182,7 @@ export async function runCorroborate(): Promise<void> {
 
         let corroboration: CorroborationResult | null = null
         try {
-          const raw = await generate('reasoning', CORROBORATION_PROMPT, userPrompt, 512)
+          const raw = await generate('drafting', CORROBORATION_PROMPT, userPrompt, 512)
           corroboration = parseCorroborationResponse(raw)
         } catch (err) {
           console.warn(`[corroborate] LLM error:`, err)

@@ -47,12 +47,12 @@ export async function runExtractClaims(): Promise<void> {
       let claims: ExtractedClaim[] | null = null
 
       try {
-        const raw = await generate('reasoning', CLAIM_EXTRACTION_PROMPT, userPrompt)
+        const raw = await generate('drafting', CLAIM_EXTRACTION_PROMPT, userPrompt)
         claims = parseClaimsResponse(raw)
 
         if (!claims) {
           const raw2 = await generate(
-            'reasoning',
+            'drafting',
             CLAIM_EXTRACTION_PROMPT + '\n\nCRITICAL: respond ONLY with the JSON array, no other text.',
             userPrompt,
           )
