@@ -166,16 +166,14 @@ export async function runCorroborate(): Promise<void> {
     try {
       const results = await searchPubMed(claim.claim_text)
 
-      if (results.length === 0) {
-        console.log(`[corroborate] No PubMed results for claim ${claim.id.slice(0, 8)}`)
-        await delay(8000)
-        continue
-      }
-
       let hasTier1 = claim.has_tier1_source
       let hasCorroboration = claim.has_corroboration
       let hasConflict = claim.has_conflict
       let conflictDescription = claim.conflict_description
+
+      if (results.length === 0) {
+        console.log(`[corroborate] No PubMed results for claim ${claim.id.slice(0, 8)}`)
+      }
 
       for (const result of results.slice(0, 2)) {
         const userPrompt = `CLAIM: ${claim.claim_text}\n\nSOURCE TITLE: ${result.title}\nSOURCE URL: ${result.url}\nSOURCE SNIPPET: ${result.snippet}`
