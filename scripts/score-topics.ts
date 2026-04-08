@@ -66,7 +66,7 @@ export async function runScoreTopics(): Promise<void> {
 
     if (!breakdown) {
       console.warn(`[score-topics] Could not parse score for topic ${topic.id}, skipping.`)
-      await delay(8000)
+      await delay(2000)
       continue
     }
 
@@ -83,7 +83,7 @@ export async function runScoreTopics(): Promise<void> {
       console.log(`[score-topics] Scored "${topic.title.slice(0, 60)}" → ${score}/100`)
     }
 
-    await delay(8000)
+    await delay(2000)
   }
 
   console.log('[score-topics] Done.')

@@ -126,7 +126,7 @@ export async function runDraftArticle(): Promise<void> {
         // Step 1: generate the article body as plain markdown (avoids JSON escaping issues)
         const bodyMarkdown = await generate('drafting', ARTICLE_BODY_PROMPT, userPrompt, 6000)
 
-        await delay(8000)
+        await delay(2000)
 
         // Step 2: generate metadata JSON separately, passing the body as context
         const metaPrompt = `CLAIMS AND SOURCES:\n${userPrompt}\n\nARTICLE BODY (already written):\n${bodyMarkdown.slice(0, 1000)}`
@@ -162,7 +162,7 @@ export async function runDraftArticle(): Promise<void> {
 
       if (!draft) {
         console.warn(`[draft-article] Could not parse draft for article ${article.id.slice(0, 8)}`)
-        await delay(8000)
+        await delay(2000)
         continue
       }
 
@@ -214,7 +214,7 @@ export async function runDraftArticle(): Promise<void> {
         console.log(`[draft-article] ${deskId}: drafted "${draft.headline.slice(0, 60)}" (grade ${grade})`)
       }
 
-      await delay(8000)
+      await delay(2000)
     }
   }
 

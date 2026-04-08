@@ -85,7 +85,7 @@ export async function runFactCheck(): Promise<void> {
         .update({ last_verified_at: now, verification_count: (article.verification_count ?? 0) + 1 })
         .eq('id', article.id)
       console.warn(`[fact-check] Could not parse result for ${article.id.slice(0, 8)}, skipping publish.`)
-      await delay(8000)
+      await delay(2000)
       continue
     }
 
@@ -128,7 +128,7 @@ export async function runFactCheck(): Promise<void> {
       )
     }
 
-    await delay(8000)
+    await delay(2000)
   }
 
   console.log('[fact-check] Done.')

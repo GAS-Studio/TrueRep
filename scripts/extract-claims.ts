@@ -65,7 +65,7 @@ export async function runExtractClaims(): Promise<void> {
       if (!claims || claims.length === 0) {
         console.warn(`[extract-claims] No claims extracted for topic ${topic.id}`)
         await supabaseAdmin.from('raw_topics').update({ processed: true }).eq('id', topic.id)
-        await delay(8000)
+        await delay(2000)
         continue
       }
 
@@ -89,7 +89,7 @@ export async function runExtractClaims(): Promise<void> {
 
       if (articleError || !articleData) {
         console.error(`[extract-claims] Could not create placeholder article:`, articleError?.message)
-        await delay(8000)
+        await delay(2000)
         continue
       }
 
@@ -154,7 +154,7 @@ export async function runExtractClaims(): Promise<void> {
         .eq('id', topic.id)
 
       console.log(`[extract-claims] ${deskId}: extracted ${claims.length} claims from "${topic.title.slice(0, 60)}"`)
-      await delay(8000)
+      await delay(2000)
     }
   }
 

@@ -99,7 +99,7 @@ This is a curated authoritative source. Based on the source title and publisher,
     }
 
     if (!corroboration || corroboration.relationship === 'contradicts') {
-      await delay(8000)
+      await delay(2000)
       continue
     }
 
@@ -139,7 +139,7 @@ This is a curated authoritative source. Based on the source title and publisher,
       console.log(`[corroborate] Linked curated source "${source.publisher}" → ${corroboration.relationship} (tier ${source.tier})`)
     }
 
-    await delay(8000)
+    await delay(2000)
   }
 
   return { hasTier1, hasCorroboration }
@@ -187,7 +187,7 @@ export async function runCorroborate(): Promise<void> {
         }
 
         if (!corroboration) {
-          await delay(8000)
+          await delay(2000)
           continue
         }
 
@@ -230,7 +230,7 @@ export async function runCorroborate(): Promise<void> {
           conflictDescription = corroboration.note
         }
 
-        await delay(8000)
+        await delay(2000)
       }
 
       // If still missing tier1 or corroboration, check curated sources for the desk
